@@ -46,7 +46,7 @@ func (s *Server) UploadFile(stream pb.FileSyncService_UploadFileServer) error {
 		hasher   = sha256.New()
 	)
 
-	// Temp file (production safe pattern)
+	// Temp file
 	tmp, err := os.CreateTemp("", "gosync-upload-*")
 	if err != nil {
 		return err
