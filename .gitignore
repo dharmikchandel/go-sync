@@ -1,0 +1,5 @@
+# Protobuf generated code
+*.pb.go
+
+# Go build artifacts
+*.exe
