@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: generated code is up to date
+        run: |
+          make gen
+          git diff --exit-code -- gen/
+
+      - name: lint
+        run: make lint
+
+      # Integration tests start real Postgres and S3 containers via Docker,
+      # which GitHub's ubuntu runners provide.
+      - name: test
+        run: make test
+
+  stack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: start stack
+        run: make up
+      - name: smoke test
+        run: go run ./cmd/go-sync info
+      - name: server logs
+        if: failure()
+        run: docker compose logs

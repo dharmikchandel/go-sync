@@ -1,60 +1,68 @@
-version: "3.9"
+name: go-sync
 
 services:
   postgres:
-    image: postgres:15
-    container_name: go-sync-postgres
+    image: postgres:17-alpine
     environment:
-      POSTGRES_PASSWORD: secret
-      POSTGRES_DB: go-sync
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: gosync
+      POSTGRES_PASSWORD: gosync
+      POSTGRES_DB: gosync
+    # No host port: the server reaches Postgres over the compose network, and
+    # publishing 5432 clashes with any Postgres already installed locally.
+    # Use `make psql` to get a shell.
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "gosync", "-d", "gosync"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
-  redis:
-    image: redis:7
-    container_name: go-sync-redis
-    ports:
-      - "6379:6379"
-
-  minio:
-    image: minio/minio
-    container_name: go-sync-minio
-    command: server /data --console-address ":9001"
+  # S3-compatible object storage. Any S3 server works; RustFS is used because
+  # MinIO no longer publishes community container images.
+  s3:
+    image: rustfs/rustfs:1.0.0
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ACCESS_KEY: gosync
+      RUSTFS_SECRET_KEY: gosync-secret
+      RUSTFS_CONSOLE_ENABLE: "true"
+    # Host ports bind to localhost only and can be overridden if taken.
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:${GOSYNC_S3_PORT:-9000}:9000" # S3 API
+      - "127.0.0.1:${GOSYNC_S3_CONSOLE_PORT:-9001}:9001" # web console, handy during demos
     volumes:
-      - miniodata:/data
+      - s3data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
-  nats:
-    image: nats:2
-    container_name: go-sync-nats
-    ports:
-      - "4222:4222"
-
-  go-sync:
-    build: .
-    container_name: go-sync-server
+  server:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-dev}
     depends_on:
-      - postgres
-      - redis
-      - minio
-      - nats
-    ports:
-      - "50051:50051"
+      postgres:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
     environment:
-      POSTGRES_URL: postgres://postgres:secret@postgres:5432/go-sync?sslmode=disable
-      REDIS_ADDR: redis:6379
-      MINIO_ENDPOINT: minio:9000
-      MINIO_USER: minio
-      MINIO_PASS: minio123
-      NATS_URL: nats://nats:4222
+      GOSYNC_POSTGRES_URL: postgres://gosync:gosync@postgres:5432/gosync?sslmode=disable
+      GOSYNC_S3_ENDPOINT: s3:9000
+      GOSYNC_S3_ACCESS_KEY: gosync
+      GOSYNC_S3_SECRET_KEY: gosync-secret
+      GOSYNC_REPLICA_ID: server-1
+    ports:
+      - "127.0.0.1:${GOSYNC_GRPC_PORT:-50051}:50051"
+    healthcheck:
+      test: ["CMD", "/go-sync", "-server", "localhost:50051", "health"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
 volumes:
   pgdata:
-  miniodata:
+  s3data:

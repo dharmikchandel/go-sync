@@ -1,5 +1,11 @@
-# Protobuf generated code
-*.pb.go
+# Private working docs (plans, notes, study material).
+.local/
 
-# Go build artifacts
-*.exe
+# Documentation is private by default; public docs are allowlisted by name.
+*.md
+!/README.md
+!/docs/design.md
+!/docs/decisions/*.md
+
+# Build output
+/bin/

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package gosync.v1;
+
+// SyncService is the API between sync clients and the go-sync server.
+service SyncService {
+  // GetServerInfo reports the server's build version and which replica
+  // answered. Clients use it to check connectivity.
+  rpc GetServerInfo(GetServerInfoRequest) returns (GetServerInfoResponse);
+}
+
+message GetServerInfoRequest {}
+
+message GetServerInfoResponse {
+  string version = 1;
+  // replica_id identifies the server instance that handled the request.
+  string replica_id = 2;
+}
