@@ -19,7 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SyncService_GetServerInfo_FullMethodName = "/gosync.v1.SyncService/GetServerInfo"
+	SyncService_GetServerInfo_FullMethodName    = "/gosync.v1.SyncService/GetServerInfo"
+	SyncService_PutBlock_FullMethodName         = "/gosync.v1.SyncService/PutBlock"
+	SyncService_GetBlock_FullMethodName         = "/gosync.v1.SyncService/GetBlock"
+	SyncService_CommitFile_FullMethodName       = "/gosync.v1.SyncService/CommitFile"
+	SyncService_DeleteFile_FullMethodName       = "/gosync.v1.SyncService/DeleteFile"
+	SyncService_GetFile_FullMethodName          = "/gosync.v1.SyncService/GetFile"
+	SyncService_ListFileVersions_FullMethodName = "/gosync.v1.SyncService/ListFileVersions"
+	SyncService_ListChanges_FullMethodName      = "/gosync.v1.SyncService/ListChanges"
 )
 
 // SyncServiceClient is the client API for SyncService service.
@@ -27,10 +34,43 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // SyncService is the API between sync clients and the go-sync server.
+//
+// Storage model: file content is split into blocks, each identified by the
+// SHA-256 of its bytes. A file version is a manifest: an ordered list of block
+// hashes. Uploading a file is two steps: PutBlock for each block, then
+// CommitFile with the manifest.
+//
+// Every RPC except GetServerInfo acts on behalf of the user named in the
+// "x-gosync-user" request metadata.
 type SyncServiceClient interface {
 	// GetServerInfo reports the server's build version and which replica
 	// answered. Clients use it to check connectivity.
 	GetServerInfo(ctx context.Context, in *GetServerInfoRequest, opts ...grpc.CallOption) (*GetServerInfoResponse, error)
+	// PutBlock stores one block. Idempotent: storing a block that already
+	// exists is a cheap no-op.
+	PutBlock(ctx context.Context, in *PutBlockRequest, opts ...grpc.CallOption) (*PutBlockResponse, error)
+	// GetBlock returns one block's bytes.
+	GetBlock(ctx context.Context, in *GetBlockRequest, opts ...grpc.CallOption) (*GetBlockResponse, error)
+	// CommitFile creates a new version of a file from already-stored blocks.
+	//
+	// base_version must equal the file's current version (0 for a file that
+	// doesn't exist yet). Otherwise the commit fails with ABORTED and a
+	// VersionConflict detail, because the caller's edit was based on a version
+	// that is no longer current. If any block is missing, it fails with
+	// FAILED_PRECONDITION and a MissingBlocks detail.
+	CommitFile(ctx context.Context, in *CommitFileRequest, opts ...grpc.CallOption) (*CommitFileResponse, error)
+	// DeleteFile records a tombstone version. The file's history is kept, and
+	// other devices learn about the delete through ListChanges.
+	DeleteFile(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*DeleteFileResponse, error)
+	// GetFile returns one version of a file, including its block manifest.
+	GetFile(ctx context.Context, in *GetFileRequest, opts ...grpc.CallOption) (*GetFileResponse, error)
+	// ListFileVersions returns a file's history, newest first.
+	ListFileVersions(ctx context.Context, in *ListFileVersionsRequest, opts ...grpc.CallOption) (*ListFileVersionsResponse, error)
+	// ListChanges returns every file whose latest version was committed after
+	// `since`, in commit order. Each file appears once, at its latest version,
+	// tombstones included. A client that stores `next_since` and calls again
+	// later sees every change exactly once, even after being offline.
+	ListChanges(ctx context.Context, in *ListChangesRequest, opts ...grpc.CallOption) (*ListChangesResponse, error)
 }
 
 type syncServiceClient struct {
@@ -51,15 +91,118 @@ func (c *syncServiceClient) GetServerInfo(ctx context.Context, in *GetServerInfo
 	return out, nil
 }
 
+func (c *syncServiceClient) PutBlock(ctx context.Context, in *PutBlockRequest, opts ...grpc.CallOption) (*PutBlockResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PutBlockResponse)
+	err := c.cc.Invoke(ctx, SyncService_PutBlock_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *syncServiceClient) GetBlock(ctx context.Context, in *GetBlockRequest, opts ...grpc.CallOption) (*GetBlockResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBlockResponse)
+	err := c.cc.Invoke(ctx, SyncService_GetBlock_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *syncServiceClient) CommitFile(ctx context.Context, in *CommitFileRequest, opts ...grpc.CallOption) (*CommitFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CommitFileResponse)
+	err := c.cc.Invoke(ctx, SyncService_CommitFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *syncServiceClient) DeleteFile(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*DeleteFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteFileResponse)
+	err := c.cc.Invoke(ctx, SyncService_DeleteFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *syncServiceClient) GetFile(ctx context.Context, in *GetFileRequest, opts ...grpc.CallOption) (*GetFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFileResponse)
+	err := c.cc.Invoke(ctx, SyncService_GetFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *syncServiceClient) ListFileVersions(ctx context.Context, in *ListFileVersionsRequest, opts ...grpc.CallOption) (*ListFileVersionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListFileVersionsResponse)
+	err := c.cc.Invoke(ctx, SyncService_ListFileVersions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *syncServiceClient) ListChanges(ctx context.Context, in *ListChangesRequest, opts ...grpc.CallOption) (*ListChangesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListChangesResponse)
+	err := c.cc.Invoke(ctx, SyncService_ListChanges_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SyncServiceServer is the server API for SyncService service.
 // All implementations must embed UnimplementedSyncServiceServer
 // for forward compatibility.
 //
 // SyncService is the API between sync clients and the go-sync server.
+//
+// Storage model: file content is split into blocks, each identified by the
+// SHA-256 of its bytes. A file version is a manifest: an ordered list of block
+// hashes. Uploading a file is two steps: PutBlock for each block, then
+// CommitFile with the manifest.
+//
+// Every RPC except GetServerInfo acts on behalf of the user named in the
+// "x-gosync-user" request metadata.
 type SyncServiceServer interface {
 	// GetServerInfo reports the server's build version and which replica
 	// answered. Clients use it to check connectivity.
 	GetServerInfo(context.Context, *GetServerInfoRequest) (*GetServerInfoResponse, error)
+	// PutBlock stores one block. Idempotent: storing a block that already
+	// exists is a cheap no-op.
+	PutBlock(context.Context, *PutBlockRequest) (*PutBlockResponse, error)
+	// GetBlock returns one block's bytes.
+	GetBlock(context.Context, *GetBlockRequest) (*GetBlockResponse, error)
+	// CommitFile creates a new version of a file from already-stored blocks.
+	//
+	// base_version must equal the file's current version (0 for a file that
+	// doesn't exist yet). Otherwise the commit fails with ABORTED and a
+	// VersionConflict detail, because the caller's edit was based on a version
+	// that is no longer current. If any block is missing, it fails with
+	// FAILED_PRECONDITION and a MissingBlocks detail.
+	CommitFile(context.Context, *CommitFileRequest) (*CommitFileResponse, error)
+	// DeleteFile records a tombstone version. The file's history is kept, and
+	// other devices learn about the delete through ListChanges.
+	DeleteFile(context.Context, *DeleteFileRequest) (*DeleteFileResponse, error)
+	// GetFile returns one version of a file, including its block manifest.
+	GetFile(context.Context, *GetFileRequest) (*GetFileResponse, error)
+	// ListFileVersions returns a file's history, newest first.
+	ListFileVersions(context.Context, *ListFileVersionsRequest) (*ListFileVersionsResponse, error)
+	// ListChanges returns every file whose latest version was committed after
+	// `since`, in commit order. Each file appears once, at its latest version,
+	// tombstones included. A client that stores `next_since` and calls again
+	// later sees every change exactly once, even after being offline.
+	ListChanges(context.Context, *ListChangesRequest) (*ListChangesResponse, error)
 	mustEmbedUnimplementedSyncServiceServer()
 }
 
@@ -72,6 +215,27 @@ type UnimplementedSyncServiceServer struct{}
 
 func (UnimplementedSyncServiceServer) GetServerInfo(context.Context, *GetServerInfoRequest) (*GetServerInfoResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetServerInfo not implemented")
+}
+func (UnimplementedSyncServiceServer) PutBlock(context.Context, *PutBlockRequest) (*PutBlockResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PutBlock not implemented")
+}
+func (UnimplementedSyncServiceServer) GetBlock(context.Context, *GetBlockRequest) (*GetBlockResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetBlock not implemented")
+}
+func (UnimplementedSyncServiceServer) CommitFile(context.Context, *CommitFileRequest) (*CommitFileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CommitFile not implemented")
+}
+func (UnimplementedSyncServiceServer) DeleteFile(context.Context, *DeleteFileRequest) (*DeleteFileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteFile not implemented")
+}
+func (UnimplementedSyncServiceServer) GetFile(context.Context, *GetFileRequest) (*GetFileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetFile not implemented")
+}
+func (UnimplementedSyncServiceServer) ListFileVersions(context.Context, *ListFileVersionsRequest) (*ListFileVersionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListFileVersions not implemented")
+}
+func (UnimplementedSyncServiceServer) ListChanges(context.Context, *ListChangesRequest) (*ListChangesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListChanges not implemented")
 }
 func (UnimplementedSyncServiceServer) mustEmbedUnimplementedSyncServiceServer() {}
 func (UnimplementedSyncServiceServer) testEmbeddedByValue()                     {}
@@ -112,6 +276,132 @@ func _SyncService_GetServerInfo_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SyncService_PutBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutBlockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SyncServiceServer).PutBlock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SyncService_PutBlock_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SyncServiceServer).PutBlock(ctx, req.(*PutBlockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SyncService_GetBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBlockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SyncServiceServer).GetBlock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SyncService_GetBlock_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SyncServiceServer).GetBlock(ctx, req.(*GetBlockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SyncService_CommitFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CommitFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SyncServiceServer).CommitFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SyncService_CommitFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SyncServiceServer).CommitFile(ctx, req.(*CommitFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SyncService_DeleteFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SyncServiceServer).DeleteFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SyncService_DeleteFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SyncServiceServer).DeleteFile(ctx, req.(*DeleteFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SyncService_GetFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SyncServiceServer).GetFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SyncService_GetFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SyncServiceServer).GetFile(ctx, req.(*GetFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SyncService_ListFileVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFileVersionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SyncServiceServer).ListFileVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SyncService_ListFileVersions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SyncServiceServer).ListFileVersions(ctx, req.(*ListFileVersionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SyncService_ListChanges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListChangesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SyncServiceServer).ListChanges(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SyncService_ListChanges_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SyncServiceServer).ListChanges(ctx, req.(*ListChangesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SyncService_ServiceDesc is the grpc.ServiceDesc for SyncService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -122,6 +412,34 @@ var SyncService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetServerInfo",
 			Handler:    _SyncService_GetServerInfo_Handler,
+		},
+		{
+			MethodName: "PutBlock",
+			Handler:    _SyncService_PutBlock_Handler,
+		},
+		{
+			MethodName: "GetBlock",
+			Handler:    _SyncService_GetBlock_Handler,
+		},
+		{
+			MethodName: "CommitFile",
+			Handler:    _SyncService_CommitFile_Handler,
+		},
+		{
+			MethodName: "DeleteFile",
+			Handler:    _SyncService_DeleteFile_Handler,
+		},
+		{
+			MethodName: "GetFile",
+			Handler:    _SyncService_GetFile_Handler,
+		},
+		{
+			MethodName: "ListFileVersions",
+			Handler:    _SyncService_ListFileVersions_Handler,
+		},
+		{
+			MethodName: "ListChanges",
+			Handler:    _SyncService_ListChanges_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -13,12 +13,17 @@ import (
 	"google.golang.org/grpc/status"
 
 	gosyncv1 "github.com/dharmikchandel/go-sync/gen/gosync/v1"
+	"github.com/dharmikchandel/go-sync/internal/api"
+	"github.com/dharmikchandel/go-sync/internal/blob"
+	"github.com/dharmikchandel/go-sync/internal/meta"
 )
 
 type Options struct {
 	Version   string
 	ReplicaID string
 	Logger    *slog.Logger
+	Repo      *meta.Repo
+	Blobs     *blob.Store
 }
 
 // Server wraps the gRPC server together with its health reporting, so the
@@ -30,13 +35,17 @@ type Server struct {
 
 func New(o Options) *Server {
 	g := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(unaryLogger(o.Logger)),
+		grpc.MaxRecvMsgSize(api.MaxMessageSize),
+		grpc.ChainUnaryInterceptor(unaryLogger(o.Logger), authenticate(o.Repo)),
 		grpc.ChainStreamInterceptor(streamLogger(o.Logger)),
 	)
 
 	gosyncv1.RegisterSyncServiceServer(g, &syncService{
 		version:   o.Version,
 		replicaID: o.ReplicaID,
+		log:       o.Logger,
+		repo:      o.Repo,
+		blobs:     o.Blobs,
 	})
 
 	// Standard gRPC health protocol, so load balancers and probes can check us
@@ -55,6 +64,9 @@ type syncService struct {
 	gosyncv1.UnimplementedSyncServiceServer
 	version   string
 	replicaID string
+	log       *slog.Logger
+	repo      *meta.Repo
+	blobs     *blob.Store
 }
 
 func (s *syncService) GetServerInfo(context.Context, *gosyncv1.GetServerInfoRequest) (*gosyncv1.GetServerInfoResponse, error) {

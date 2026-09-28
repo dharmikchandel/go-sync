@@ -16,6 +16,7 @@ import (
 	"github.com/dharmikchandel/go-sync/internal/blob"
 	"github.com/dharmikchandel/go-sync/internal/config"
 	"github.com/dharmikchandel/go-sync/internal/db"
+	"github.com/dharmikchandel/go-sync/internal/meta"
 	"github.com/dharmikchandel/go-sync/internal/server"
 )
 
@@ -53,7 +54,7 @@ func run(log *slog.Logger) error {
 	}
 	log.Info("postgres ready")
 
-	_, err = blob.Open(startCtx, blob.Options{
+	blobs, err := blob.Open(startCtx, blob.Options{
 		Endpoint:  cfg.S3Endpoint,
 		AccessKey: cfg.S3AccessKey,
 		SecretKey: cfg.S3SecretKey,
@@ -65,7 +66,13 @@ func run(log *slog.Logger) error {
 	}
 	log.Info("object storage ready", "bucket", cfg.S3Bucket)
 
-	srv := server.New(server.Options{Version: version, ReplicaID: cfg.ReplicaID, Logger: log})
+	srv := server.New(server.Options{
+		Version:   version,
+		ReplicaID: cfg.ReplicaID,
+		Logger:    log,
+		Repo:      meta.New(pool),
+		Blobs:     blobs,
+	})
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {

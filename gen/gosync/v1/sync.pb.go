@@ -9,6 +9,7 @@ package gosyncv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -110,18 +111,1004 @@ func (x *GetServerInfoResponse) GetReplicaId() string {
 	return ""
 }
 
+type BlockRef struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SHA-256 of the block's bytes (32 bytes).
+	Hash          []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	Size          int32  `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BlockRef) Reset() {
+	*x = BlockRef{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BlockRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BlockRef) ProtoMessage() {}
+
+func (x *BlockRef) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BlockRef.ProtoReflect.Descriptor instead.
+func (*BlockRef) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BlockRef) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+func (x *BlockRef) GetSize() int32 {
+	if x != nil {
+		return x.Size
+	}
+	return 0
+}
+
+type FileVersion struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Path    string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Version int64                  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	// seq is this change's position in the user's change feed.
+	Seq       int64                  `protobuf:"varint,3,opt,name=seq,proto3" json:"seq,omitempty"`
+	Deleted   bool                   `protobuf:"varint,4,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	Size      int64                  `protobuf:"varint,5,opt,name=size,proto3" json:"size,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// blocks is the manifest. Only filled by GetFile.
+	Blocks        []*BlockRef `protobuf:"bytes,7,rep,name=blocks,proto3" json:"blocks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FileVersion) Reset() {
+	*x = FileVersion{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FileVersion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FileVersion) ProtoMessage() {}
+
+func (x *FileVersion) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FileVersion.ProtoReflect.Descriptor instead.
+func (*FileVersion) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *FileVersion) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *FileVersion) GetVersion() int64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *FileVersion) GetSeq() int64 {
+	if x != nil {
+		return x.Seq
+	}
+	return 0
+}
+
+func (x *FileVersion) GetDeleted() bool {
+	if x != nil {
+		return x.Deleted
+	}
+	return false
+}
+
+func (x *FileVersion) GetSize() int64 {
+	if x != nil {
+		return x.Size
+	}
+	return 0
+}
+
+func (x *FileVersion) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *FileVersion) GetBlocks() []*BlockRef {
+	if x != nil {
+		return x.Blocks
+	}
+	return nil
+}
+
+type PutBlockRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// hash must be the SHA-256 of data; the server verifies it.
+	Hash          []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	Data          []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PutBlockRequest) Reset() {
+	*x = PutBlockRequest{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PutBlockRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutBlockRequest) ProtoMessage() {}
+
+func (x *PutBlockRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutBlockRequest.ProtoReflect.Descriptor instead.
+func (*PutBlockRequest) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *PutBlockRequest) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+func (x *PutBlockRequest) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+type PutBlockResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// already_existed is true if the server already had this block.
+	AlreadyExisted bool `protobuf:"varint,1,opt,name=already_existed,json=alreadyExisted,proto3" json:"already_existed,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *PutBlockResponse) Reset() {
+	*x = PutBlockResponse{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PutBlockResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutBlockResponse) ProtoMessage() {}
+
+func (x *PutBlockResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutBlockResponse.ProtoReflect.Descriptor instead.
+func (*PutBlockResponse) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PutBlockResponse) GetAlreadyExisted() bool {
+	if x != nil {
+		return x.AlreadyExisted
+	}
+	return false
+}
+
+type GetBlockRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Hash          []byte                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBlockRequest) Reset() {
+	*x = GetBlockRequest{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBlockRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBlockRequest) ProtoMessage() {}
+
+func (x *GetBlockRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBlockRequest.ProtoReflect.Descriptor instead.
+func (*GetBlockRequest) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetBlockRequest) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+type GetBlockResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Data          []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBlockResponse) Reset() {
+	*x = GetBlockResponse{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBlockResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBlockResponse) ProtoMessage() {}
+
+func (x *GetBlockResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBlockResponse.ProtoReflect.Descriptor instead.
+func (*GetBlockResponse) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetBlockResponse) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+type CommitFileRequest struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Path        string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	BaseVersion int64                  `protobuf:"varint,2,opt,name=base_version,json=baseVersion,proto3" json:"base_version,omitempty"`
+	// block_hashes is the manifest, in file order. Empty for an empty file.
+	BlockHashes   [][]byte `protobuf:"bytes,3,rep,name=block_hashes,json=blockHashes,proto3" json:"block_hashes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CommitFileRequest) Reset() {
+	*x = CommitFileRequest{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommitFileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommitFileRequest) ProtoMessage() {}
+
+func (x *CommitFileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommitFileRequest.ProtoReflect.Descriptor instead.
+func (*CommitFileRequest) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *CommitFileRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *CommitFileRequest) GetBaseVersion() int64 {
+	if x != nil {
+		return x.BaseVersion
+	}
+	return 0
+}
+
+func (x *CommitFileRequest) GetBlockHashes() [][]byte {
+	if x != nil {
+		return x.BlockHashes
+	}
+	return nil
+}
+
+type CommitFileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	File          *FileVersion           `protobuf:"bytes,1,opt,name=file,proto3" json:"file,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CommitFileResponse) Reset() {
+	*x = CommitFileResponse{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommitFileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommitFileResponse) ProtoMessage() {}
+
+func (x *CommitFileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommitFileResponse.ProtoReflect.Descriptor instead.
+func (*CommitFileResponse) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CommitFileResponse) GetFile() *FileVersion {
+	if x != nil {
+		return x.File
+	}
+	return nil
+}
+
+type DeleteFileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	BaseVersion   int64                  `protobuf:"varint,2,opt,name=base_version,json=baseVersion,proto3" json:"base_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteFileRequest) Reset() {
+	*x = DeleteFileRequest{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteFileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteFileRequest) ProtoMessage() {}
+
+func (x *DeleteFileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteFileRequest.ProtoReflect.Descriptor instead.
+func (*DeleteFileRequest) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DeleteFileRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *DeleteFileRequest) GetBaseVersion() int64 {
+	if x != nil {
+		return x.BaseVersion
+	}
+	return 0
+}
+
+type DeleteFileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	File          *FileVersion           `protobuf:"bytes,1,opt,name=file,proto3" json:"file,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteFileResponse) Reset() {
+	*x = DeleteFileResponse{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteFileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteFileResponse) ProtoMessage() {}
+
+func (x *DeleteFileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteFileResponse.ProtoReflect.Descriptor instead.
+func (*DeleteFileResponse) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *DeleteFileResponse) GetFile() *FileVersion {
+	if x != nil {
+		return x.File
+	}
+	return nil
+}
+
+type GetFileRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Path  string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// version to fetch; 0 means the current version.
+	Version       int64 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFileRequest) Reset() {
+	*x = GetFileRequest{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFileRequest) ProtoMessage() {}
+
+func (x *GetFileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFileRequest.ProtoReflect.Descriptor instead.
+func (*GetFileRequest) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetFileRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *GetFileRequest) GetVersion() int64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+type GetFileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	File          *FileVersion           `protobuf:"bytes,1,opt,name=file,proto3" json:"file,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFileResponse) Reset() {
+	*x = GetFileResponse{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFileResponse) ProtoMessage() {}
+
+func (x *GetFileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFileResponse.ProtoReflect.Descriptor instead.
+func (*GetFileResponse) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetFileResponse) GetFile() *FileVersion {
+	if x != nil {
+		return x.File
+	}
+	return nil
+}
+
+type ListFileVersionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFileVersionsRequest) Reset() {
+	*x = ListFileVersionsRequest{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFileVersionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFileVersionsRequest) ProtoMessage() {}
+
+func (x *ListFileVersionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFileVersionsRequest.ProtoReflect.Descriptor instead.
+func (*ListFileVersionsRequest) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ListFileVersionsRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+type ListFileVersionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Versions      []*FileVersion         `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFileVersionsResponse) Reset() {
+	*x = ListFileVersionsResponse{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFileVersionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFileVersionsResponse) ProtoMessage() {}
+
+func (x *ListFileVersionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFileVersionsResponse.ProtoReflect.Descriptor instead.
+func (*ListFileVersionsResponse) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ListFileVersionsResponse) GetVersions() []*FileVersion {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
+type ListChangesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Since int64                  `protobuf:"varint,1,opt,name=since,proto3" json:"since,omitempty"`
+	// limit caps the page size; 0 means the server default.
+	Limit         int32 `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListChangesRequest) Reset() {
+	*x = ListChangesRequest{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListChangesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListChangesRequest) ProtoMessage() {}
+
+func (x *ListChangesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListChangesRequest.ProtoReflect.Descriptor instead.
+func (*ListChangesRequest) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListChangesRequest) GetSince() int64 {
+	if x != nil {
+		return x.Since
+	}
+	return 0
+}
+
+func (x *ListChangesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListChangesResponse struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Changes []*FileVersion         `protobuf:"bytes,1,rep,name=changes,proto3" json:"changes,omitempty"`
+	// next_since is the cursor for the next call.
+	NextSince int64 `protobuf:"varint,2,opt,name=next_since,json=nextSince,proto3" json:"next_since,omitempty"`
+	// has_more is true if more changes are available right now.
+	HasMore       bool `protobuf:"varint,3,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListChangesResponse) Reset() {
+	*x = ListChangesResponse{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListChangesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListChangesResponse) ProtoMessage() {}
+
+func (x *ListChangesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListChangesResponse.ProtoReflect.Descriptor instead.
+func (*ListChangesResponse) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListChangesResponse) GetChanges() []*FileVersion {
+	if x != nil {
+		return x.Changes
+	}
+	return nil
+}
+
+func (x *ListChangesResponse) GetNextSince() int64 {
+	if x != nil {
+		return x.NextSince
+	}
+	return 0
+}
+
+func (x *ListChangesResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
+}
+
+// VersionConflict is attached to ABORTED errors from CommitFile/DeleteFile.
+type VersionConflict struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CurrentVersion int64                  `protobuf:"varint,1,opt,name=current_version,json=currentVersion,proto3" json:"current_version,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *VersionConflict) Reset() {
+	*x = VersionConflict{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VersionConflict) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VersionConflict) ProtoMessage() {}
+
+func (x *VersionConflict) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VersionConflict.ProtoReflect.Descriptor instead.
+func (*VersionConflict) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *VersionConflict) GetCurrentVersion() int64 {
+	if x != nil {
+		return x.CurrentVersion
+	}
+	return 0
+}
+
+// MissingBlocks is attached to FAILED_PRECONDITION errors from CommitFile.
+type MissingBlocks struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Hashes        [][]byte               `protobuf:"bytes,1,rep,name=hashes,proto3" json:"hashes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MissingBlocks) Reset() {
+	*x = MissingBlocks{}
+	mi := &file_gosync_v1_sync_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MissingBlocks) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MissingBlocks) ProtoMessage() {}
+
+func (x *MissingBlocks) ProtoReflect() protoreflect.Message {
+	mi := &file_gosync_v1_sync_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MissingBlocks.ProtoReflect.Descriptor instead.
+func (*MissingBlocks) Descriptor() ([]byte, []int) {
+	return file_gosync_v1_sync_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *MissingBlocks) GetHashes() [][]byte {
+	if x != nil {
+		return x.Hashes
+	}
+	return nil
+}
+
 var File_gosync_v1_sync_proto protoreflect.FileDescriptor
 
 const file_gosync_v1_sync_proto_rawDesc = "" +
 	"\n" +
-	"\x14gosync/v1/sync.proto\x12\tgosync.v1\"\x16\n" +
+	"\x14gosync/v1/sync.proto\x12\tgosync.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x16\n" +
 	"\x14GetServerInfoRequest\"P\n" +
 	"\x15GetServerInfoResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1d\n" +
 	"\n" +
-	"replica_id\x18\x02 \x01(\tR\treplicaId2a\n" +
+	"replica_id\x18\x02 \x01(\tR\treplicaId\"2\n" +
+	"\bBlockRef\x12\x12\n" +
+	"\x04hash\x18\x01 \x01(\fR\x04hash\x12\x12\n" +
+	"\x04size\x18\x02 \x01(\x05R\x04size\"\xe3\x01\n" +
+	"\vFileVersion\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\x03R\aversion\x12\x10\n" +
+	"\x03seq\x18\x03 \x01(\x03R\x03seq\x12\x18\n" +
+	"\adeleted\x18\x04 \x01(\bR\adeleted\x12\x12\n" +
+	"\x04size\x18\x05 \x01(\x03R\x04size\x129\n" +
+	"\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12+\n" +
+	"\x06blocks\x18\a \x03(\v2\x13.gosync.v1.BlockRefR\x06blocks\"9\n" +
+	"\x0fPutBlockRequest\x12\x12\n" +
+	"\x04hash\x18\x01 \x01(\fR\x04hash\x12\x12\n" +
+	"\x04data\x18\x02 \x01(\fR\x04data\";\n" +
+	"\x10PutBlockResponse\x12'\n" +
+	"\x0falready_existed\x18\x01 \x01(\bR\x0ealreadyExisted\"%\n" +
+	"\x0fGetBlockRequest\x12\x12\n" +
+	"\x04hash\x18\x01 \x01(\fR\x04hash\"&\n" +
+	"\x10GetBlockResponse\x12\x12\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\"m\n" +
+	"\x11CommitFileRequest\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12!\n" +
+	"\fbase_version\x18\x02 \x01(\x03R\vbaseVersion\x12!\n" +
+	"\fblock_hashes\x18\x03 \x03(\fR\vblockHashes\"@\n" +
+	"\x12CommitFileResponse\x12*\n" +
+	"\x04file\x18\x01 \x01(\v2\x16.gosync.v1.FileVersionR\x04file\"J\n" +
+	"\x11DeleteFileRequest\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12!\n" +
+	"\fbase_version\x18\x02 \x01(\x03R\vbaseVersion\"@\n" +
+	"\x12DeleteFileResponse\x12*\n" +
+	"\x04file\x18\x01 \x01(\v2\x16.gosync.v1.FileVersionR\x04file\">\n" +
+	"\x0eGetFileRequest\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\x03R\aversion\"=\n" +
+	"\x0fGetFileResponse\x12*\n" +
+	"\x04file\x18\x01 \x01(\v2\x16.gosync.v1.FileVersionR\x04file\"-\n" +
+	"\x17ListFileVersionsRequest\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\"N\n" +
+	"\x18ListFileVersionsResponse\x122\n" +
+	"\bversions\x18\x01 \x03(\v2\x16.gosync.v1.FileVersionR\bversions\"@\n" +
+	"\x12ListChangesRequest\x12\x14\n" +
+	"\x05since\x18\x01 \x01(\x03R\x05since\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"\x81\x01\n" +
+	"\x13ListChangesResponse\x120\n" +
+	"\achanges\x18\x01 \x03(\v2\x16.gosync.v1.FileVersionR\achanges\x12\x1d\n" +
+	"\n" +
+	"next_since\x18\x02 \x01(\x03R\tnextSince\x12\x19\n" +
+	"\bhas_more\x18\x03 \x01(\bR\ahasMore\":\n" +
+	"\x0fVersionConflict\x12'\n" +
+	"\x0fcurrent_version\x18\x01 \x01(\x03R\x0ecurrentVersion\"'\n" +
+	"\rMissingBlocks\x12\x16\n" +
+	"\x06hashes\x18\x01 \x03(\fR\x06hashes2\xee\x04\n" +
 	"\vSyncService\x12R\n" +
-	"\rGetServerInfo\x12\x1f.gosync.v1.GetServerInfoRequest\x1a .gosync.v1.GetServerInfoResponseB\x99\x01\n" +
+	"\rGetServerInfo\x12\x1f.gosync.v1.GetServerInfoRequest\x1a .gosync.v1.GetServerInfoResponse\x12C\n" +
+	"\bPutBlock\x12\x1a.gosync.v1.PutBlockRequest\x1a\x1b.gosync.v1.PutBlockResponse\x12C\n" +
+	"\bGetBlock\x12\x1a.gosync.v1.GetBlockRequest\x1a\x1b.gosync.v1.GetBlockResponse\x12I\n" +
+	"\n" +
+	"CommitFile\x12\x1c.gosync.v1.CommitFileRequest\x1a\x1d.gosync.v1.CommitFileResponse\x12I\n" +
+	"\n" +
+	"DeleteFile\x12\x1c.gosync.v1.DeleteFileRequest\x1a\x1d.gosync.v1.DeleteFileResponse\x12@\n" +
+	"\aGetFile\x12\x19.gosync.v1.GetFileRequest\x1a\x1a.gosync.v1.GetFileResponse\x12[\n" +
+	"\x10ListFileVersions\x12\".gosync.v1.ListFileVersionsRequest\x1a#.gosync.v1.ListFileVersionsResponse\x12L\n" +
+	"\vListChanges\x12\x1d.gosync.v1.ListChangesRequest\x1a\x1e.gosync.v1.ListChangesResponseB\x99\x01\n" +
 	"\rcom.gosync.v1B\tSyncProtoP\x01Z8github.com/dharmikchandel/go-sync/gen/gosync/v1;gosyncv1\xa2\x02\x03GXX\xaa\x02\tGosync.V1\xca\x02\tGosync\\V1\xe2\x02\x15Gosync\\V1\\GPBMetadata\xea\x02\n" +
 	"Gosync::V1b\x06proto3"
 
@@ -137,19 +1124,59 @@ func file_gosync_v1_sync_proto_rawDescGZIP() []byte {
 	return file_gosync_v1_sync_proto_rawDescData
 }
 
-var file_gosync_v1_sync_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_gosync_v1_sync_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_gosync_v1_sync_proto_goTypes = []any{
-	(*GetServerInfoRequest)(nil),  // 0: gosync.v1.GetServerInfoRequest
-	(*GetServerInfoResponse)(nil), // 1: gosync.v1.GetServerInfoResponse
+	(*GetServerInfoRequest)(nil),     // 0: gosync.v1.GetServerInfoRequest
+	(*GetServerInfoResponse)(nil),    // 1: gosync.v1.GetServerInfoResponse
+	(*BlockRef)(nil),                 // 2: gosync.v1.BlockRef
+	(*FileVersion)(nil),              // 3: gosync.v1.FileVersion
+	(*PutBlockRequest)(nil),          // 4: gosync.v1.PutBlockRequest
+	(*PutBlockResponse)(nil),         // 5: gosync.v1.PutBlockResponse
+	(*GetBlockRequest)(nil),          // 6: gosync.v1.GetBlockRequest
+	(*GetBlockResponse)(nil),         // 7: gosync.v1.GetBlockResponse
+	(*CommitFileRequest)(nil),        // 8: gosync.v1.CommitFileRequest
+	(*CommitFileResponse)(nil),       // 9: gosync.v1.CommitFileResponse
+	(*DeleteFileRequest)(nil),        // 10: gosync.v1.DeleteFileRequest
+	(*DeleteFileResponse)(nil),       // 11: gosync.v1.DeleteFileResponse
+	(*GetFileRequest)(nil),           // 12: gosync.v1.GetFileRequest
+	(*GetFileResponse)(nil),          // 13: gosync.v1.GetFileResponse
+	(*ListFileVersionsRequest)(nil),  // 14: gosync.v1.ListFileVersionsRequest
+	(*ListFileVersionsResponse)(nil), // 15: gosync.v1.ListFileVersionsResponse
+	(*ListChangesRequest)(nil),       // 16: gosync.v1.ListChangesRequest
+	(*ListChangesResponse)(nil),      // 17: gosync.v1.ListChangesResponse
+	(*VersionConflict)(nil),          // 18: gosync.v1.VersionConflict
+	(*MissingBlocks)(nil),            // 19: gosync.v1.MissingBlocks
+	(*timestamppb.Timestamp)(nil),    // 20: google.protobuf.Timestamp
 }
 var file_gosync_v1_sync_proto_depIdxs = []int32{
-	0, // 0: gosync.v1.SyncService.GetServerInfo:input_type -> gosync.v1.GetServerInfoRequest
-	1, // 1: gosync.v1.SyncService.GetServerInfo:output_type -> gosync.v1.GetServerInfoResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	20, // 0: gosync.v1.FileVersion.created_at:type_name -> google.protobuf.Timestamp
+	2,  // 1: gosync.v1.FileVersion.blocks:type_name -> gosync.v1.BlockRef
+	3,  // 2: gosync.v1.CommitFileResponse.file:type_name -> gosync.v1.FileVersion
+	3,  // 3: gosync.v1.DeleteFileResponse.file:type_name -> gosync.v1.FileVersion
+	3,  // 4: gosync.v1.GetFileResponse.file:type_name -> gosync.v1.FileVersion
+	3,  // 5: gosync.v1.ListFileVersionsResponse.versions:type_name -> gosync.v1.FileVersion
+	3,  // 6: gosync.v1.ListChangesResponse.changes:type_name -> gosync.v1.FileVersion
+	0,  // 7: gosync.v1.SyncService.GetServerInfo:input_type -> gosync.v1.GetServerInfoRequest
+	4,  // 8: gosync.v1.SyncService.PutBlock:input_type -> gosync.v1.PutBlockRequest
+	6,  // 9: gosync.v1.SyncService.GetBlock:input_type -> gosync.v1.GetBlockRequest
+	8,  // 10: gosync.v1.SyncService.CommitFile:input_type -> gosync.v1.CommitFileRequest
+	10, // 11: gosync.v1.SyncService.DeleteFile:input_type -> gosync.v1.DeleteFileRequest
+	12, // 12: gosync.v1.SyncService.GetFile:input_type -> gosync.v1.GetFileRequest
+	14, // 13: gosync.v1.SyncService.ListFileVersions:input_type -> gosync.v1.ListFileVersionsRequest
+	16, // 14: gosync.v1.SyncService.ListChanges:input_type -> gosync.v1.ListChangesRequest
+	1,  // 15: gosync.v1.SyncService.GetServerInfo:output_type -> gosync.v1.GetServerInfoResponse
+	5,  // 16: gosync.v1.SyncService.PutBlock:output_type -> gosync.v1.PutBlockResponse
+	7,  // 17: gosync.v1.SyncService.GetBlock:output_type -> gosync.v1.GetBlockResponse
+	9,  // 18: gosync.v1.SyncService.CommitFile:output_type -> gosync.v1.CommitFileResponse
+	11, // 19: gosync.v1.SyncService.DeleteFile:output_type -> gosync.v1.DeleteFileResponse
+	13, // 20: gosync.v1.SyncService.GetFile:output_type -> gosync.v1.GetFileResponse
+	15, // 21: gosync.v1.SyncService.ListFileVersions:output_type -> gosync.v1.ListFileVersionsResponse
+	17, // 22: gosync.v1.SyncService.ListChanges:output_type -> gosync.v1.ListChangesResponse
+	15, // [15:23] is the sub-list for method output_type
+	7,  // [7:15] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_gosync_v1_sync_proto_init() }
@@ -163,7 +1190,7 @@ func file_gosync_v1_sync_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gosync_v1_sync_proto_rawDesc), len(file_gosync_v1_sync_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

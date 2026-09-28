@@ -9,3 +9,6 @@
 
 # Build output
 /bin/
+
+# One-off local study page
+/CONCEPT.html

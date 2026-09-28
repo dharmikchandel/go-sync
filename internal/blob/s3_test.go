@@ -12,7 +12,7 @@ import (
 // Opening twice must succeed: the second open finds the bucket already there,
 // which is what happens every time a replica restarts.
 func TestOpenCreatesBucketIdempotently(t *testing.T) {
-	m := testenv.ObjectStore(t)
+	m := testenv.SharedObjectStore(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

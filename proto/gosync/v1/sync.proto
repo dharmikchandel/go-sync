@@ -2,11 +2,53 @@ syntax = "proto3";
 
 package gosync.v1;
 
+import "google/protobuf/timestamp.proto";
+
 // SyncService is the API between sync clients and the go-sync server.
+//
+// Storage model: file content is split into blocks, each identified by the
+// SHA-256 of its bytes. A file version is a manifest: an ordered list of block
+// hashes. Uploading a file is two steps: PutBlock for each block, then
+// CommitFile with the manifest.
+//
+// Every RPC except GetServerInfo acts on behalf of the user named in the
+// "x-gosync-user" request metadata.
 service SyncService {
   // GetServerInfo reports the server's build version and which replica
   // answered. Clients use it to check connectivity.
   rpc GetServerInfo(GetServerInfoRequest) returns (GetServerInfoResponse);
+
+  // PutBlock stores one block. Idempotent: storing a block that already
+  // exists is a cheap no-op.
+  rpc PutBlock(PutBlockRequest) returns (PutBlockResponse);
+
+  // GetBlock returns one block's bytes.
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
+
+  // CommitFile creates a new version of a file from already-stored blocks.
+  //
+  // base_version must equal the file's current version (0 for a file that
+  // doesn't exist yet). Otherwise the commit fails with ABORTED and a
+  // VersionConflict detail, because the caller's edit was based on a version
+  // that is no longer current. If any block is missing, it fails with
+  // FAILED_PRECONDITION and a MissingBlocks detail.
+  rpc CommitFile(CommitFileRequest) returns (CommitFileResponse);
+
+  // DeleteFile records a tombstone version. The file's history is kept, and
+  // other devices learn about the delete through ListChanges.
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
+
+  // GetFile returns one version of a file, including its block manifest.
+  rpc GetFile(GetFileRequest) returns (GetFileResponse);
+
+  // ListFileVersions returns a file's history, newest first.
+  rpc ListFileVersions(ListFileVersionsRequest) returns (ListFileVersionsResponse);
+
+  // ListChanges returns every file whose latest version was committed after
+  // `since`, in commit order. Each file appears once, at its latest version,
+  // tombstones included. A client that stores `next_since` and calls again
+  // later sees every change exactly once, even after being offline.
+  rpc ListChanges(ListChangesRequest) returns (ListChangesResponse);
 }
 
 message GetServerInfoRequest {}
@@ -15,4 +57,103 @@ message GetServerInfoResponse {
   string version = 1;
   // replica_id identifies the server instance that handled the request.
   string replica_id = 2;
+}
+
+message BlockRef {
+  // SHA-256 of the block's bytes (32 bytes).
+  bytes hash = 1;
+  int32 size = 2;
+}
+
+message FileVersion {
+  string path = 1;
+  int64 version = 2;
+  // seq is this change's position in the user's change feed.
+  int64 seq = 3;
+  bool deleted = 4;
+  int64 size = 5;
+  google.protobuf.Timestamp created_at = 6;
+  // blocks is the manifest. Only filled by GetFile.
+  repeated BlockRef blocks = 7;
+}
+
+message PutBlockRequest {
+  // hash must be the SHA-256 of data; the server verifies it.
+  bytes hash = 1;
+  bytes data = 2;
+}
+
+message PutBlockResponse {
+  // already_existed is true if the server already had this block.
+  bool already_existed = 1;
+}
+
+message GetBlockRequest {
+  bytes hash = 1;
+}
+
+message GetBlockResponse {
+  bytes data = 1;
+}
+
+message CommitFileRequest {
+  string path = 1;
+  int64 base_version = 2;
+  // block_hashes is the manifest, in file order. Empty for an empty file.
+  repeated bytes block_hashes = 3;
+}
+
+message CommitFileResponse {
+  FileVersion file = 1;
+}
+
+message DeleteFileRequest {
+  string path = 1;
+  int64 base_version = 2;
+}
+
+message DeleteFileResponse {
+  FileVersion file = 1;
+}
+
+message GetFileRequest {
+  string path = 1;
+  // version to fetch; 0 means the current version.
+  int64 version = 2;
+}
+
+message GetFileResponse {
+  FileVersion file = 1;
+}
+
+message ListFileVersionsRequest {
+  string path = 1;
+}
+
+message ListFileVersionsResponse {
+  repeated FileVersion versions = 1;
+}
+
+message ListChangesRequest {
+  int64 since = 1;
+  // limit caps the page size; 0 means the server default.
+  int32 limit = 2;
+}
+
+message ListChangesResponse {
+  repeated FileVersion changes = 1;
+  // next_since is the cursor for the next call.
+  int64 next_since = 2;
+  // has_more is true if more changes are available right now.
+  bool has_more = 3;
+}
+
+// VersionConflict is attached to ABORTED errors from CommitFile/DeleteFile.
+message VersionConflict {
+  int64 current_version = 1;
+}
+
+// MissingBlocks is attached to FAILED_PRECONDITION errors from CommitFile.
+message MissingBlocks {
+  repeated bytes hashes = 1;
 }

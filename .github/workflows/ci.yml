@@ -26,6 +26,8 @@ jobs:
       # which GitHub's ubuntu runners provide.
       - name: test
         run: make test
+        env:
+          GOSYNC_REQUIRE_DOCKER: "1"
 
   stack:
     runs-on: ubuntu-latest

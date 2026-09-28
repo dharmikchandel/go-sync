@@ -2,8 +2,11 @@
 package blob
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -62,4 +65,35 @@ func (s *Store) ensureBucket(ctx context.Context) error {
 		return nil
 	}
 	return err
+}
+
+// ErrNotFound means no object exists under the key.
+var ErrNotFound = errors.New("object not found")
+
+// Put stores data under key, replacing any existing object. Keys are content
+// hashes, so a replacement always has identical bytes: concurrent Puts of the
+// same key are harmless.
+func (s *Store) Put(ctx context.Context, key string, data []byte) error {
+	_, err := s.client.PutObject(ctx, s.bucket, key, bytes.NewReader(data), int64(len(data)),
+		minio.PutObjectOptions{ContentType: "application/octet-stream"})
+	return err
+}
+
+// Get returns the whole object. Objects are single blocks (at most a few MiB),
+// so reading them into memory is fine.
+func (s *Store) Get(ctx context.Context, key string) ([]byte, error) {
+	obj, err := s.client.GetObject(ctx, s.bucket, key, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer obj.Close()
+
+	// io.ReadAll handles readers that return data and io.EOF together, which
+	// minio's object reader does on its last read. The old code dropped
+	// that final chunk, so small downloads came back empty.
+	data, err := io.ReadAll(obj)
+	if minio.ToErrorResponse(err).Code == "NoSuchKey" {
+		return nil, ErrNotFound
+	}
+	return data, err
 }
