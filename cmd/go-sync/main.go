@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path"
@@ -23,6 +24,7 @@ import (
 
 	gosyncv1 "github.com/dharmikchandel/go-sync/gen/gosync/v1"
 	"github.com/dharmikchandel/go-sync/internal/client"
+	"github.com/dharmikchandel/go-sync/internal/syncer"
 )
 
 const usage = `usage: go-sync [-server addr] [-user name] <command> [args]
@@ -35,6 +37,10 @@ files:
   history <remote-path>                      list a file's versions
   restore <remote-path> <version>            make an old version current again
   changes [-since N]                         show the change feed after seq N
+
+folders:
+  sync [-device name] <dir>                  sync a folder once and exit
+  daemon [-device name] [-poll 2s] <dir>     keep a folder in sync until stopped
 
 server:
   info    show which server replica answered and its version
@@ -73,6 +79,8 @@ func main() {
 		"history": history,
 		"restore": restore,
 		"changes": changes,
+		"sync":    syncOnce,
+		"daemon":  daemon,
 		"info":    info,
 		"health":  checkHealth,
 	}
@@ -306,6 +314,50 @@ func changes(ctx context.Context, g globals, args []string) error {
 	}
 	fmt.Printf("\nnext cursor: -since %d\n", next)
 	return nil
+}
+
+func syncOnce(ctx context.Context, g globals, args []string) error {
+	fs := flag.NewFlagSet("sync", flag.ContinueOnError)
+	device := fs.String("device", "", "name used in conflicted copies (default: hostname)")
+	args, err := parseArgs(fs, args, 1, 1)
+	if err != nil {
+		return err
+	}
+	return withSyncer(g, args[0], syncer.Options{Device: *device}, func(s *syncer.Syncer) error {
+		return s.SyncOnce(ctx)
+	})
+}
+
+func daemon(ctx context.Context, g globals, args []string) error {
+	fs := flag.NewFlagSet("daemon", flag.ContinueOnError)
+	device := fs.String("device", "", "name used in conflicted copies (default: hostname)")
+	poll := fs.Duration("poll", 2*time.Second, "how often to check the server for changes")
+	args, err := parseArgs(fs, args, 1, 1)
+	if err != nil {
+		return err
+	}
+	opts := syncer.Options{Device: *device, PollInterval: *poll}
+	return withSyncer(g, args[0], opts, func(s *syncer.Syncer) error {
+		slog.Info("syncing (Ctrl-C to stop)", "dir", args[0], "server", g.server, "user", g.user)
+		return s.Run(ctx)
+	})
+}
+
+func withSyncer(g globals, dir string, opts syncer.Options, fn func(*syncer.Syncer) error) error {
+	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+		return fmt.Errorf("%s is not a directory", dir)
+	}
+	c, err := g.dial()
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	s, err := syncer.Open(dir, c, g.user, opts)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+	return fn(s)
 }
 
 func info(ctx context.Context, g globals, _ []string) error {

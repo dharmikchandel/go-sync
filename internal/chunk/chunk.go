@@ -44,3 +44,31 @@ func (c *Reader) Next() (Block, error) {
 	data := buf[:n]
 	return Block{Hash: sha256.Sum256(data), Data: data}, nil
 }
+
+// ContentID identifies content by its manifest: the SHA-256 of its block
+// hashes, in order. Equal bytes (split the same way) give equal IDs, so the
+// sync client can compare a local file with a server version without
+// downloading it.
+func ContentID(hashes [][]byte) [32]byte {
+	h := sha256.New()
+	for _, b := range hashes {
+		h.Write(b)
+	}
+	return [32]byte(h.Sum(nil))
+}
+
+// Manifest reads r to the end and returns its block hashes in order.
+func Manifest(r io.Reader) ([][]byte, error) {
+	var hashes [][]byte
+	chunks := NewReader(r)
+	for {
+		b, err := chunks.Next()
+		if errors.Is(err, io.EOF) {
+			return hashes, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		hashes = append(hashes, b.Hash[:])
+	}
+}

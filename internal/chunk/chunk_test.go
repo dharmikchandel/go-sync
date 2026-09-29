@@ -54,3 +54,25 @@ func TestReaderSplitsAtBlockBoundaries(t *testing.T) {
 		}
 	}
 }
+
+func TestContentID(t *testing.T) {
+	id := func(data []byte) [32]byte {
+		hashes, err := Manifest(bytes.NewReader(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ContentID(hashes)
+	}
+	big := bytes.Repeat([]byte("x"), BlockSize+10)
+	if id(big) != id(bytes.Clone(big)) {
+		t.Fatal("equal content, different IDs")
+	}
+	changed := bytes.Clone(big)
+	changed[BlockSize+5] = 'y'
+	if id(big) == id(changed) {
+		t.Fatal("different content, same ID")
+	}
+	if id(nil) == id([]byte{0}) {
+		t.Fatal("empty file has the same ID as a one-byte file")
+	}
+}

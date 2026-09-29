@@ -1,6 +1,6 @@
 // Package client talks to a go-sync server: uploading and downloading files
-// as blocks, and reading history and the change feed. The CLI uses it now,
-// and the sync daemon will too.
+// as blocks, and reading history and the change feed. The CLI and the sync
+// daemon (package syncer) both use it.
 package client
 
 import (
@@ -87,11 +87,16 @@ func (c *Client) Upload(ctx context.Context, localPath, remotePath string, base 
 	}
 	defer f.Close()
 
-	hashes, err := c.putBlocks(ctx, f)
+	hashes, err := c.PutBlocks(ctx, f)
 	if err != nil {
 		return nil, err
 	}
+	return c.Commit(ctx, remotePath, base, hashes)
+}
 
+// Commit makes the manifest (already uploaded with PutBlocks) the next
+// version of remotePath. It returns *ConflictError if base is stale.
+func (c *Client) Commit(ctx context.Context, remotePath string, base int64, hashes [][]byte) (*gosyncv1.FileVersion, error) {
 	resp, err := c.rpc.CommitFile(ctx, &gosyncv1.CommitFileRequest{
 		Path:        remotePath,
 		BaseVersion: base,
@@ -103,9 +108,9 @@ func (c *Client) Upload(ctx context.Context, localPath, remotePath string, base 
 	return resp.File, nil
 }
 
-// putBlocks splits r into blocks and uploads them, a few at a time, returning
-// the manifest in file order.
-func (c *Client) putBlocks(ctx context.Context, r io.Reader) ([][]byte, error) {
+// PutBlocks splits r into blocks and uploads them, a few at a time,
+// returning the manifest in file order.
+func (c *Client) PutBlocks(ctx context.Context, r io.Reader) ([][]byte, error) {
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(parallelism) // g.Go blocks while `parallelism` uploads are running
 
@@ -143,41 +148,71 @@ func (c *Client) putBlocks(ctx context.Context, r io.Reader) ([][]byte, error) {
 
 // Download writes a version of remotePath (0 = current) to localPath.
 //
-// The file is assembled in a temp file next to localPath, every block is
-// checked against its hash, and only then is it renamed over localPath. A
-// failed or interrupted download leaves the existing local file untouched.
+// A failed or interrupted download leaves the existing local file untouched:
+// see Fetch.
 func (c *Client) Download(ctx context.Context, remotePath string, version int64, localPath string) (*gosyncv1.FileVersion, error) {
 	file, err := c.GetFile(ctx, remotePath, version)
 	if err != nil {
 		return nil, err
 	}
-	if file.Deleted {
-		return nil, fmt.Errorf("%s v%d is a deleted version", remotePath, file.Version)
-	}
-
-	tmp, err := os.CreateTemp(filepath.Dir(localPath), ".gosync-download-*")
+	tmp, err := c.Fetch(ctx, file, filepath.Dir(localPath))
 	if err != nil {
 		return nil, err
 	}
-	defer os.Remove(tmp.Name()) // fails harmlessly once renamed
-	defer tmp.Close()
-
-	if err := c.getBlocks(ctx, file.Blocks, tmp); err != nil {
-		return nil, err
-	}
-	// fsync before rename: otherwise a power loss right after the rename
-	// could leave localPath pointing at a file whose data never hit disk.
-	if err := tmp.Sync(); err != nil {
-		return nil, err
-	}
-	if err := tmp.Close(); err != nil {
-		return nil, err
-	}
-	// rename is atomic: readers see either the old file or the new one.
-	if err := os.Rename(tmp.Name(), localPath); err != nil {
+	defer os.Remove(tmp) // fails harmlessly once renamed
+	if err := Install(tmp, localPath); err != nil {
 		return nil, err
 	}
 	return file, nil
+}
+
+// TempPrefix starts the name of every temp file a download creates.
+const TempPrefix = ".gosync-download-"
+
+// Fetch downloads file (which must include its manifest) into a new temp
+// file in dir and returns its path. Every block is checked against its hash
+// and the data is fsynced. The caller moves it into place with Install, or
+// removes it.
+//
+// The temp file must be in the destination's directory: rename is only
+// atomic within one filesystem.
+func (c *Client) Fetch(ctx context.Context, file *gosyncv1.FileVersion, dir string) (string, error) {
+	if file.Deleted {
+		return "", fmt.Errorf("%s v%d is a deleted version", file.Path, file.Version)
+	}
+	tmp, err := os.CreateTemp(dir, TempPrefix+"*")
+	if err != nil {
+		return "", err
+	}
+	err = c.getBlocks(ctx, file.Blocks, tmp)
+	if err == nil {
+		// fsync before rename: otherwise a power loss right after the rename
+		// could leave the real name pointing at data that never hit disk.
+		err = tmp.Sync()
+	}
+	if cerr := tmp.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		os.Remove(tmp.Name())
+		return "", err
+	}
+	return tmp.Name(), nil
+}
+
+// Install renames a fetched temp file over localPath. rename is atomic:
+// readers see either the old file or the new one, never a mix. The directory
+// is fsynced too, so the rename itself survives a power loss.
+func Install(tmp, localPath string) error {
+	if err := os.Rename(tmp, localPath); err != nil {
+		return err
+	}
+	d, err := os.Open(filepath.Dir(localPath))
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	return d.Sync()
 }
 
 // getBlocks fetches blocks in parallel, each written at its own offset.
@@ -251,19 +286,16 @@ func (c *Client) Restore(ctx context.Context, remotePath string, version, base i
 	if old.Deleted {
 		return nil, fmt.Errorf("%s v%d is a deleted version", remotePath, version)
 	}
-	hashes := make([][]byte, len(old.Blocks))
-	for i, b := range old.Blocks {
+	return c.Commit(ctx, remotePath, base, Hashes(old))
+}
+
+// Hashes returns a version's manifest as a list of block hashes.
+func Hashes(file *gosyncv1.FileVersion) [][]byte {
+	hashes := make([][]byte, len(file.Blocks))
+	for i, b := range file.Blocks {
 		hashes[i] = b.Hash
 	}
-	resp, err := c.rpc.CommitFile(ctx, &gosyncv1.CommitFileRequest{
-		Path:        remotePath,
-		BaseVersion: base,
-		BlockHashes: hashes,
-	})
-	if err != nil {
-		return nil, convertError(err, remotePath, base)
-	}
-	return resp.File, nil
+	return hashes
 }
 
 // History returns remotePath's versions, newest first.

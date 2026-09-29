@@ -8,76 +8,20 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
-	"log/slog"
-	"net"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/test/bufconn"
 
 	gosyncv1 "github.com/dharmikchandel/go-sync/gen/gosync/v1"
-	"github.com/dharmikchandel/go-sync/internal/blob"
 	"github.com/dharmikchandel/go-sync/internal/chunk"
 	"github.com/dharmikchandel/go-sync/internal/client"
-	"github.com/dharmikchandel/go-sync/internal/meta"
-	"github.com/dharmikchandel/go-sync/internal/server"
 	"github.com/dharmikchandel/go-sync/internal/testenv"
 )
-
-type env struct {
-	repo  *meta.Repo
-	blobs *blob.Store
-	lis   *bufconn.Listener
-}
-
-// newEnv runs the real server (real Postgres, real S3) on an in-memory
-// listener.
-func newEnv(t *testing.T) *env {
-	t.Helper()
-	repo := meta.New(testenv.Pool(t))
-	s3 := testenv.SharedObjectStore(t)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	blobs, err := blob.Open(ctx, blob.Options{Endpoint: s3.Endpoint, AccessKey: s3.AccessKey, SecretKey: s3.SecretKey, Bucket: "gosync-test"})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	srv := server.New(server.Options{
-		Version:   "test",
-		ReplicaID: "test",
-		Logger:    slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Repo:      repo,
-		Blobs:     blobs,
-	})
-	lis := bufconn.Listen(1 << 20)
-	go srv.GRPC.Serve(lis)
-	t.Cleanup(srv.GRPC.Stop)
-	return &env{repo: repo, blobs: blobs, lis: lis}
-}
-
-func (e *env) dialer() grpc.DialOption {
-	return grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return e.lis.DialContext(ctx) })
-}
-
-// client connects as user.
-func (e *env) client(t *testing.T, user string) *client.Client {
-	t.Helper()
-	c, err := client.Dial("passthrough:///bufnet", user, e.dialer())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { c.Close() })
-	return c
-}
 
 func writeRandomFile(t *testing.T, path string, size int) []byte {
 	t.Helper()
@@ -93,8 +37,8 @@ func writeRandomFile(t *testing.T, path string, size int) []byte {
 // touches a block boundary. The original prototype returned empty files for
 // anything under 64 KiB; this is the test that would have caught it.
 func TestRoundTripAtBlockBoundaries(t *testing.T) {
-	e := newEnv(t)
-	c := e.client(t, testenv.User(t))
+	e := testenv.StartServer(t)
+	c := e.Client(t, testenv.User(t))
 	ctx := context.Background()
 	dir := t.TempDir()
 
@@ -126,8 +70,8 @@ func TestRoundTripAtBlockBoundaries(t *testing.T) {
 // A failed download must never damage the local file. The prototype
 // truncated it to zero bytes before even contacting the server.
 func TestFailedDownloadLeavesLocalFileUntouched(t *testing.T) {
-	e := newEnv(t)
-	c := e.client(t, testenv.User(t))
+	e := testenv.StartServer(t)
+	c := e.Client(t, testenv.User(t))
 	dir := t.TempDir()
 	local := filepath.Join(dir, "precious.txt")
 	os.WriteFile(local, []byte("do not lose me"), 0o644)
@@ -143,9 +87,9 @@ func TestFailedDownloadLeavesLocalFileUntouched(t *testing.T) {
 // If stored bytes are corrupted, the client must detect it from the block
 // hash and refuse to write them.
 func TestCorruptedBlockIsDetected(t *testing.T) {
-	e := newEnv(t)
+	e := testenv.StartServer(t)
 	user := testenv.User(t)
-	c := e.client(t, user)
+	c := e.Client(t, user)
 	ctx := context.Background()
 	dir := t.TempDir()
 
@@ -161,9 +105,9 @@ func TestCorruptedBlockIsDetected(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	userID, _ := e.repo.EnsureUser(ctx, user)
+	userID, _ := e.Repo.EnsureUser(ctx, user)
 	key := fmt.Sprintf("blocks/%d/%s", userID, hex.EncodeToString(full.Blocks[0].Hash))
-	if err := e.blobs.Put(ctx, key, []byte("bit rot")); err != nil {
+	if err := e.Blobs.Put(ctx, key, []byte("bit rot")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -177,9 +121,9 @@ func TestCorruptedBlockIsDetected(t *testing.T) {
 }
 
 func TestConcurrentEditIsRejected(t *testing.T) {
-	e := newEnv(t)
+	e := testenv.StartServer(t)
 	user := testenv.User(t)
-	laptop, phone := e.client(t, user), e.client(t, user)
+	laptop, phone := e.Client(t, user), e.Client(t, user)
 	ctx := context.Background()
 	dir := t.TempDir()
 	f := filepath.Join(dir, "f")
@@ -203,8 +147,8 @@ func TestConcurrentEditIsRejected(t *testing.T) {
 }
 
 func TestRestoreCommitsOldManifest(t *testing.T) {
-	e := newEnv(t)
-	c := e.client(t, testenv.User(t))
+	e := testenv.StartServer(t)
+	c := e.Client(t, testenv.User(t))
 	ctx := context.Background()
 	dir := t.TempDir()
 	f := filepath.Join(dir, "f")
@@ -232,8 +176,8 @@ func TestRestoreCommitsOldManifest(t *testing.T) {
 }
 
 func TestPutBlockVerifiesHash(t *testing.T) {
-	e := newEnv(t)
-	c := e.client(t, testenv.User(t))
+	e := testenv.StartServer(t)
+	c := e.Client(t, testenv.User(t))
 	wrong := sha256.Sum256([]byte("something else"))
 
 	_, err := c.RPC().PutBlock(context.Background(), &gosyncv1.PutBlockRequest{Hash: wrong[:], Data: []byte("data")})
@@ -243,8 +187,8 @@ func TestPutBlockVerifiesHash(t *testing.T) {
 }
 
 func TestRequestValidation(t *testing.T) {
-	e := newEnv(t)
-	c := e.client(t, testenv.User(t))
+	e := testenv.StartServer(t)
+	c := e.Client(t, testenv.User(t))
 	ctx := context.Background()
 
 	for _, p := range []string{"", "/etc/passwd", "../escape", "a//b"} {
@@ -255,7 +199,7 @@ func TestRequestValidation(t *testing.T) {
 	}
 
 	// No user metadata at all.
-	conn, err := grpc.NewClient("passthrough:///bufnet", e.dialer(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("passthrough:///bufnet", e.DialOption(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,7 +223,7 @@ func assertFile(t *testing.T, path, want string) {
 
 func assertNoTempFiles(t *testing.T, dir string) {
 	t.Helper()
-	leftovers, _ := filepath.Glob(filepath.Join(dir, ".gosync-download-*"))
+	leftovers, _ := filepath.Glob(filepath.Join(dir, client.TempPrefix+"*"))
 	if len(leftovers) > 0 {
 		t.Fatalf("temp files left behind: %v", leftovers)
 	}
